@@ -12,22 +12,29 @@ class ByteArrayWriter:
         
     def write_big_integer(self, val):
         a = val.to_bytes((val.bit_length() + 7) // 8, byteorder='big')
-        self.write_int(len(a))
+        w = len(a)
+        self.write_int(w)
         self.file.write(a)
         
     def write_int(self, val):
-        self.file.write(val.to_bytes(32, byteorder='big'))
+        self.file.write(val.to_bytes(4, byteorder='big'))
         
     def write_string(self, s, charset = 'UTF-8'):
         if(s == None):
             self.write_int(0)
         else:
             a = s.encode(charset)
-            self.write_int(len(a))
+            w = len(a)
+            self.write_int(w)
             self.file.write(a)
         
     def write_binary_string(self, data):
+        w = len(data)
+        self.write_int(w)
         self.file.write(data)
+        
+    def get_bytes(self):
+        return self.file.getvalue()
 
 class ByteArrayReader:
     
@@ -35,7 +42,7 @@ class ByteArrayReader:
         self.file = io.BytesIO(data)
         
     def read_int(self):
-        return struct.unpack('>i', self.file.read(4))[0]
+        return struct.unpack('>I', self.file.read(4))[0]
         
     def read_string(self):
         a = bytearray(self.read_int())
@@ -49,6 +56,6 @@ class ByteArrayReader:
         return self.file.read(self.read_int())
     
     def read_boolean(self):
-        return self.file.read(1) == 1
+        return self.file.read(1)[0] == 1
         
         

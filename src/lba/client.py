@@ -132,14 +132,8 @@ class AuthenticatorClient:
         flags = 0
         
         if isinstance(key, RSA._RSAobj):
-        
-            if self.logger != None:
-                self.logger.info('RSA Key');
-            while flags >= 0:
-                try:
-                    return AuthenticatorResponse(key, payload, self._request_signature(principal, fingerprint, text, button_text, encoded_payload, flags), flags)
-                except:
-                    flags -= 2
+            # Tell the server we want a RSAWithSHA512 signature
+            flags = 4
 
         return AuthenticatorResponse(key, payload, self._request_signature(principal, fingerprint, text, button_text, encoded_payload, flags), flags)
     
@@ -159,7 +153,7 @@ class AuthenticatorClient:
         else:
             raise('Unsupported') # TODO
         
-        return w.file.getvalue()
+        return w.get_bytes()
     
     def _generate_fingerprint(self, key):
         m = hashlib.sha256()
@@ -201,6 +195,12 @@ class AuthenticatorClient:
             sigresponse = json.loads(body)
             if sigresponse['success'] != True:
                 raise Exception(sigresponse['message'])
+            
+            if sigresponse['signature'] == '':
+                r = ByteArrayReader(base64.urlsafe_b64decode(sigresponse['response']))
+                if not r.read_boolean():
+                    raise Exception('No signature. %s' % r.read_string())
+                raise Exception('The server did not respond with a valid response!');
             
             return base64.urlsafe_b64decode(sigresponse['signature'])
 
