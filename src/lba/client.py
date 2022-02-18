@@ -10,6 +10,17 @@ import json
 from .util import ByteArrayReader
 from .util import ByteArrayWriter
 from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_v1_5
+from Crypto.Hash import SHA, SHA512, SHA256
+
+def _is_rsa(key):
+    return isinstance(key, RSA._RSAobj)    
+
+def _is_ed25519(key):
+    raise('Unsupported') # TODO
+
+def _is_eddsa(key):
+    raise('Unsupported') # TODO
 
 class AuthenticatorResponse:
     
@@ -20,15 +31,36 @@ class AuthenticatorResponse:
         self.flags = flags
         
     def verify(self):
+        if _is_rsa(self.key):
+            self._verify_rsa_signature()
+        elif _is_ed25519(self.key):
+            self._verify_ed25519_signature()
+        elif _is_eddsa(self.key):
+            self._verify_eddsa_signature()
+        else:
+            raise('Unsupported key type')
+    
+    def _verify_rsa_signature(self):
+        v = PKCS1_v1_5.new(self.key)
+        h = None
+        if self.flags == 4:
+            h = SHA512.new(self.payload)
+        elif self.flags == 2:
+            h = SHA256.new(self.payload)
+        else:
+            h = SHA.new(self.payload)
+        v.verify(h, self.signature)
+    
+    def _verify_ed25519_signature(self):
+        raise('Unsupported') # TODO
+    
+    def _verify_eddsa_signature(self):
         raise('Unsupported') # TODO
     
 class AuthenticatorRequest:
     
-    def __init__(self, client, key, username, fingerprint, flags, encoded_payload):
+    def __init__(self, client, encoded_payload):
         self.client = client
-        self.key = key
-        self.username = username
-        self.fingerprint = fingerprint
         self.encoded_payload = encoded_payload
         
     def get_url(self):
@@ -119,6 +151,9 @@ class AuthenticatorClient:
                         continue
         return l
     
+    def generate_request(self, email, redirect_url):
+        raise Exception('Unsupported') # TODO
+    
     def _replace_variables(self, prompt_text, principal):
         return prompt_text.replace('{username}', principal).replace('{remoteName}', self.remote_name).replace('{hostname}', self.host)
     
@@ -138,7 +173,7 @@ class AuthenticatorClient:
         return AuthenticatorResponse(key, payload, self._request_signature(principal, fingerprint, text, button_text, encoded_payload, flags), flags)
     
     def _get_algorithm(self, key):
-        if isinstance(key, RSA._RSAobj):
+        if _is_rsa(key):
             return 'ssh-rsa'
         else:
             raise Exception('Unsupported') # TODO
