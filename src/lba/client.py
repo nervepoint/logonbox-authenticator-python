@@ -7,7 +7,7 @@ import urllib.request
 import urllib.parse
 import hashlib
 import json
-import time
+import os
 
 from .util import ByteArrayReader
 from .util import ByteArrayWriter
@@ -16,6 +16,9 @@ from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA, SHA512, SHA256
 from dns.dnssec import _is_rsa
 
+    
+ED25519_ASN_HEADER = bytes([0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21, 0x00])
+    
 def _is_rsa(key):
     return isinstance(key, RSA._RSAobj)    
 
@@ -76,8 +79,6 @@ class AuthenticatorRequest:
         return self.client.process_response(base64.urlsafe_b64decode(self.encoded_payload), base64.urlsafe_b64decode(response))
 
 class AuthenticatorClient:
-    
-    ED25519_ASN_HEADER = bytes([0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21, 0x00])
     
     def __init__(self, host, port = 443, 
                  remote_name = 'LogonBox Authenticator API',
@@ -165,8 +166,9 @@ class AuthenticatorClient:
         w.write_string(self.prompt_text)
         w.write_string(self.authorize_text)
         w.write_int(flags)
-        w.write_int(round(time.time() * 1000))
+        w.write_int(int(os.urandom(4)))
         w.write_string(redirect_url)
+        w.write(secrets.token_bytes(16))
         
         return AuthenticatorRequest(self, base64.urlsafe_b64encode(w.get_bytes()))
     
@@ -311,6 +313,11 @@ class AuthenticatorClient:
         return RSA.construct((n, e)).publickey()
         
     def _decode_ed25519(self, reader):
+        k = reader.read_binary_string()
+        e = ED25519_ASN_HEADER + k
+        
+        # TODO make key from this X509 spec
+        
         raise Exception('Unsupported') # TODO
         
         
