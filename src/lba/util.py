@@ -11,7 +11,7 @@ class ByteArrayWriter:
         self.file = io.BytesIO()
         
     def write_big_integer(self, val):
-        a = val.to_bytes((val.bit_length() + 7) // 8, byteorder='big')
+        a = val.to_bytes(length=(8 + (val + (val < 0)).bit_length()) // 8, byteorder='big', signed=True)
         w = len(a)
         self.write_int(w)
         self.file.write(a)

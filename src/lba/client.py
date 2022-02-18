@@ -120,7 +120,7 @@ class AuthenticatorClient:
         return l
     
     def _replace_variables(self, prompt_text, principal):
-        return prompt_text.replace('{username}', principal).replace('{remoteName', self.remote_name).replace('{hostname}', self.host)
+        return prompt_text.replace('{username}', principal).replace('{remoteName}', self.remote_name).replace('{hostname}', self.host)
     
     def _sign_payload(self, principal, key, text, button_text, payload):
         fingerprint = self._generate_fingerprint(key)
