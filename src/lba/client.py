@@ -6,12 +6,15 @@ import secrets
 import urllib.request
 import urllib.parse
 import hashlib
-import json 
+import json
+import time
+
 from .util import ByteArrayReader
 from .util import ByteArrayWriter
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA, SHA512, SHA256
+from dns.dnssec import _is_rsa
 
 def _is_rsa(key):
     return isinstance(key, RSA._RSAobj)    
@@ -152,7 +155,50 @@ class AuthenticatorClient:
         return l
     
     def generate_request(self, email, redirect_url):
-        raise Exception('Unsupported') # TODO
+        w = ByteArrayWriter()
+        key = self.get_default_key(email)
+        fingerprint = self._generate_fingerprint(key)
+        flags = self.get_flags(key)
+        w.write_string(email)
+        w.write_string(fingerprint)
+        w.write_string(self.remote_name)
+        w.write_string(self.prompt_text)
+        w.write_string(self.authorize_text)
+        w.write_int(flags)
+        w.write_int(round(time.time() * 1000))
+        w.write_string(redirect_url)
+        
+        return AuthenticatorRequest(self, base64.urlsafe_b64encode(w.get_bytes()))
+    
+    def process_response(self, payload, sig):
+        r = ByteArrayReader(sig)
+        if r.read_boolean():
+            username = r.read_string()
+            fingerprint = r.read_string()
+            flags = r.read_int()
+            signature = r.read_string()
+            return AuthenticatorResponse(self.get_user_key(username, fingerprint), payload, signature, flags)
+        else:
+            raise Exception(r.read_string())
+        
+    def get_flags(self, key):
+        if _is_rsa(key):
+            return 4
+        else:
+            return 0
+        
+    def get_default_key(self, email):
+        keys = self.get_user_keys(email);
+        selected = None
+        for key in keys:
+            if _is_rsa(key):
+                selected = key
+                break
+        
+        if selected == None and len(keys) > 0:
+            selected = keys[0]
+        
+        return selected
     
     def _replace_variables(self, prompt_text, principal):
         return prompt_text.replace('{username}', principal).replace('{remoteName}', self.remote_name).replace('{hostname}', self.host)
