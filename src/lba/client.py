@@ -14,8 +14,6 @@ from .util import ByteArrayWriter
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA, SHA512, SHA256
-from dns.dnssec import _is_rsa
-
     
 ED25519_ASN_HEADER = bytes([0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21, 0x00])
     
@@ -211,7 +209,7 @@ class AuthenticatorClient:
         if self.logger != None:
             self.logger.info('Key fingerprint is %s', fingerprint);
         
-        encoded_payload = base64.urlsafe_b64encode(payload)
+        encoded_payload = base64.b64encode(payload)
         flags = 0
         
         if isinstance(key, RSA._RSAobj):
@@ -224,7 +222,7 @@ class AuthenticatorClient:
         if _is_rsa(key):
             return 'ssh-rsa'
         else:
-            raise Exception('Unsupported') # TODO
+            return 'ssh-ed25519'
         
     def _encode_key(self, key):
         w = ByteArrayWriter()
@@ -234,7 +232,7 @@ class AuthenticatorClient:
             w.write_big_integer(key.e)
             w.write_big_integer(key.n)
         else:
-            raise('Unsupported') # TODO
+            w.write_binary_string(key[-32:])
         
         return w.get_bytes()
     
@@ -255,9 +253,9 @@ class AuthenticatorClient:
             'remoteName' : self.remote_name,
             'text' : text,
             'authorizeText' : button_text,
-            'flags' : flags,
-            'payload' : encoded_payload
-        }) 
+            'flags' : flags
+        })
+        data += '&payload=' + encoded_payload.decode('UTF-8') # Bit odd, but this makes it match Java API. 
         
         if self.logger != None:
             self.logger.info('Request data "%s"', data)
@@ -285,7 +283,7 @@ class AuthenticatorClient:
                     raise Exception('No signature. %s' % r.read_string())
                 raise Exception('The server did not respond with a valid response!');
             
-            return base64.urlsafe_b64decode(sigresponse['signature'])
+            return base64.urlsafe_b64decode(sigresponse['signature'] + '==') # Response from server is not padded
 
     def _decode_key(self, keystr):
         
@@ -315,10 +313,6 @@ class AuthenticatorClient:
     def _decode_ed25519(self, reader):
         k = reader.read_binary_string()
         e = ED25519_ASN_HEADER + k
-        
-        # TODO make key from this X509 spec
-        
-        raise Exception('Unsupported') # TODO
-        
+        return e
         
         
