@@ -14,11 +14,16 @@ from .util import ByteArrayWriter
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA, SHA512, SHA256
+
+# from Cryptodome.PublicKey import RSA
+# from Cryptodome.Signature import PKCS1_v1_5
+# from Cryptodome.Hash import SHA, SHA512, SHA256
     
 ED25519_ASN_HEADER = bytes([0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21, 0x00])
     
 def _is_rsa(key):
-    return isinstance(key, RSA._RSAobj)    
+    #return isinstance(key, RSA.RsaKey)    
+    return isinstance(key, RSA._RSAobj)
 
 def _is_ed25519(key):
     raise('Unsupported') # TODO
@@ -82,7 +87,10 @@ class AuthenticatorClient:
                  remote_name = 'LogonBox Authenticator API',
                  prompt_text = '{username} wants to authenticate from {remoteName} using your {hostname} credentials.',
                  authorize_text = 'Authorize',
-                 logger = None):
+                 logger = None,
+                 rsa = True,
+                 ed25519 = True,
+                 _development = False):
         
         self.host = host
         self.port = port
@@ -90,8 +98,14 @@ class AuthenticatorClient:
         self.prompt_text = prompt_text
         self.authorize_text = authorize_text
         self.logger = logger
+        self.rsa = rsa
+        self.ed25519 = ed25519
+        self._development = _development
         
-    def authenticate(self, principal, payload = secrets.token_bytes(256)):
+    def authenticate(self, principal, payload = secrets.token_bytes(128)):
+        if self._development:
+            payload = bytes(128)
+            
         with urllib.request.urlopen('https://%s:%d/authorizedKeys/%s' % (self.host, self.port, principal)) as response:
             body = response.read()
             if self.logger != None:
@@ -164,9 +178,15 @@ class AuthenticatorClient:
         w.write_string(self.prompt_text)
         w.write_string(self.authorize_text)
         w.write_int(flags)
-        w.write_int(int(os.urandom(4)))
+        if self._development:
+            w.write_int(0)
+        else:
+            w.write_int(int(os.urandom(4)))
         w.write_string(redirect_url)
-        w.write(secrets.token_bytes(16))
+        if self._development:
+            w.write(bytes(16))
+        else:
+            w.write(secrets.token_bytes(16))
         
         return AuthenticatorRequest(self, base64.urlsafe_b64encode(w.get_bytes()))
     
@@ -209,10 +229,10 @@ class AuthenticatorClient:
         if self.logger != None:
             self.logger.info('Key fingerprint is %s', fingerprint);
         
-        encoded_payload = base64.b64encode(payload)
+        encoded_payload = base64.urlsafe_b64encode(payload)
         flags = 0
         
-        if isinstance(key, RSA._RSAobj):
+        if _is_rsa(key):
             # Tell the server we want a RSAWithSHA512 signature
             flags = 4
 
@@ -299,9 +319,16 @@ class AuthenticatorClient:
             self.logger.info('Key "%s" is a %s',keystr, algo)
         
         if algo == 'ssh-rsa':
-            return self._decode_rsa(r)
+            if(self.rsa):
+                return self._decode_rsa(r)
+            else:
+                raise Exception("RSA explicitly disabled, skipping")
+            
         elif algo == 'ssh-ed25519':
-            return self._decode_ed25519(r)
+            if(self.ed25519):
+                return self._decode_ed25519(r)
+            else:
+                raise Exception("ED25519 explicitly disabled, skipping")
         else:
             raise Exception('Unknown key type %s', algo)
         
