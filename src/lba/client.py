@@ -11,25 +11,20 @@ import os
 
 from .util import ByteArrayReader
 from .util import ByteArrayWriter
-from Crypto.PublicKey import RSA
-from Crypto.Signature import PKCS1_v1_5
-from Crypto.Hash import SHA, SHA512, SHA256
 
-# from Cryptodome.PublicKey import RSA
-# from Cryptodome.Signature import PKCS1_v1_5
-# from Cryptodome.Hash import SHA, SHA512, SHA256
+from Cryptodome.PublicKey import RSA
+from Cryptodome.Signature import PKCS1_v1_5
+from Cryptodome.Hash import SHA, SHA512, SHA256
+
+import ed25519
     
 ED25519_ASN_HEADER = bytes([0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21, 0x00])
     
 def _is_rsa(key):
-    #return isinstance(key, RSA.RsaKey)    
-    return isinstance(key, RSA._RSAobj)
+    return isinstance(key, RSA.RsaKey)    
 
 def _is_ed25519(key):
-    raise('Unsupported') # TODO
-
-def _is_eddsa(key):
-    raise('Unsupported') # TODO
+    return isinstance(key, ed25519.SigningKey)
 
 class AuthenticatorResponse:
     
@@ -44,8 +39,6 @@ class AuthenticatorResponse:
             self._verify_rsa_signature()
         elif _is_ed25519(self.key):
             self._verify_ed25519_signature()
-        elif _is_eddsa(self.key):
-            self._verify_eddsa_signature()
         else:
             raise('Unsupported key type')
     
@@ -61,10 +54,13 @@ class AuthenticatorResponse:
         v.verify(h, self.signature)
     
     def _verify_ed25519_signature(self):
-        raise('Unsupported') # TODO
-    
-    def _verify_eddsa_signature(self):
-        raise('Unsupported') # TODO
+        print("SIG %s (%d)" % (self.signature, len(self.signature)))
+        print("PL %s (%d)" % (self.payload, len(self.payload)))
+        v = self.key.get_verifying_key()
+        try:
+            v.verify(self.signature, self.payload)
+        except ed25519.BadSignatureError:
+            raise ValueError('Signature verification failed.')
     
 class AuthenticatorRequest:
     
@@ -252,7 +248,7 @@ class AuthenticatorClient:
             w.write_big_integer(key.e)
             w.write_big_integer(key.n)
         else:
-            w.write_binary_string(key[-32:])
+            w.write_binary_string(key.to_seed())
         
         return w.get_bytes()
     
@@ -339,7 +335,6 @@ class AuthenticatorClient:
         
     def _decode_ed25519(self, reader):
         k = reader.read_binary_string()
-        e = ED25519_ASN_HEADER + k
-        return e
+        return ed25519.SigningKey(k)
         
         
