@@ -6,7 +6,12 @@ The LogonBox Authenticator uses an authentication mechanism similar to SSH priva
 
 As part of the signing operation, the user must authorize the request within the LogonBox Authenticator app. Once authorized the payload is signed by the private key, which is held exclusively within the secure storage of the app. 
 
-To authenticate the user, the API verifies the signature returned to obtain the authentication result. 
+To authenticate the user, the API verifies the signature returned to obtain the authentication result.
+
+## Other Languages
+
+ * [Java](https://github.com/nervepoint/logonbox-authenticator-java)
+ * [Node/Javascript](https://github.com/nervepoint/logonbox-authenticator-nodejs)
 
 # Requirements
 
