@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 
 import lba.client
-import logging
 
-logger = logging.getLogger('lba')
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
-
-client = lba.client.AuthenticatorClient('corp.logonbox.directory', logger=logger);
-auth_response = client.authenticate('brett@logonbox.com');
-
-print("Success!")
+client = lba.client.AuthenticatorClient('corp.logonbox.directory', debug=True, ed25519=False)
+auth_response = client.authenticate('brett@logonbox.com')
+if auth_response.verify():
+    print("Success!")
+else:
+    print("Failure!")

@@ -12,6 +12,7 @@ To authenticate the user, the API verifies the signature returned to obtain the 
 
  * [Java](https://github.com/nervepoint/logonbox-authenticator-java)
  * [Node/Javascript](https://github.com/nervepoint/logonbox-authenticator-nodejs)
+ * [PHP](https://github.com/nervepoint/logonbox-authenticator-php)
 
 # Requirements
 
