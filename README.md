@@ -8,6 +8,12 @@ As part of the signing operation, the user must authorize the request within the
 
 To authenticate the user, the API verifies the signature returned to obtain the authentication result.
 
+# About LogonBox Authenticator
+
+Safeguard your people, passwords and apps with LogonBox's 2-Factor [Authentication app](https://www.logonbox.com/content/logonbox-authenticator/) for Android and iOS. 
+
+<img src="src/web/logonbox-logo.png" width="256">
+
 ## Other Languages
 
  * [Java](https://github.com/nervepoint/logonbox-authenticator-java)
