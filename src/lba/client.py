@@ -106,7 +106,7 @@ class _DefaultKeySource(KeySource):
         self.port = port
         
     def list_keys(self, client, principal):
-        with urllib.request.urlopen('https://%s:%d/authorizedKeys/%s' % (self.host, self.port, principal)) as response:
+        with urllib.request.urlopen('https://%s:%d/app/api/authenticator/keys/%s' % (self.host, self.port, principal)) as response:
             body = response.read()
             
         if client.logger != None:
