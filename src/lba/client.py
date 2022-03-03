@@ -15,7 +15,9 @@ from Cryptodome.PublicKey import RSA
 from Cryptodome.Signature import PKCS1_v1_5
 from Cryptodome.Hash import SHA, SHA512, SHA256
 
-import ed25519
+from nacl.encoding import RawEncoder
+from nacl.signing  import SigningKey, VerifyKey
+from nacl.exceptions import BadSignatureError
     
 ED25519_ASN_HEADER = bytes([0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21, 0x00])
     
@@ -23,7 +25,7 @@ def _is_rsa(key):
     return isinstance(key, RSA.RsaKey)    
 
 def _is_ed25519(key):
-    return isinstance(key, ed25519.SigningKey)
+    return isinstance(key, SigningKey)
 
 class RandomGenerator:
     def bytes(self, count):
@@ -71,12 +73,10 @@ class AuthenticatorResponse:
         return v.verify(h, self.signature)
     
     def _verify_ed25519_signature(self):
-        print('ED25519 SIG %s (%d)' % (base64.b64encode(self.signature), len(self.signature)))
-        print('ED25519 PL %s (%d)' % (base64.b64encode(self.payload), len(self.payload)))
-        v = self.key.get_verifying_key()
+        v = VerifyKey(bytes(self.key))
         try:
-            v.verify(self.signature, self.payload)
-        except ed25519.BadSignatureError:
+            v.verify(self.payload, self.signature)
+        except BadSignatureError:
             return False
         return True
     
@@ -238,12 +238,13 @@ class AuthenticatorClient:
                 
                 if self.logger != None:
                     self.logger.info('Decoded %s public key', self._get_algorithm(pub));
-                    
-                return self._sign_payload(principal, pub, self._replace_variables(self.prompt_text, principal), self.authorize_text, payload)
+                
             except Exception:
                 if self.logger != None:
                     self.logger.warn('Failed %s public key', k, exc_info = True);
                 continue
+                
+            return self._sign_payload(principal, pub, self._replace_variables(self.prompt_text, principal), self.authorize_text, payload)
                 
         raise Exception('No suitable key found for %s' % principal)
         
@@ -347,7 +348,8 @@ class AuthenticatorClient:
             w.write_big_integer(key.e)
             w.write_big_integer(key.n)
         else:
-            w.write_binary_string(key.to_seed())
+            bb = bytes(key)
+            w.write_binary_string(bb)
         
         return w.get_bytes()
     
@@ -395,6 +397,6 @@ class AuthenticatorClient:
         
     def _decode_ed25519(self, reader):
         k = reader.read_binary_string()
-        return ed25519.SigningKey(k)
+        return SigningKey(k, encoder=RawEncoder)
         
         

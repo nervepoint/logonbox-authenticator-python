@@ -90,6 +90,7 @@ class AuthenticatorClientTest(unittest.TestCase):
         self.assertFalse(client.authenticate('test').verify())
         
     def test_ed25519_zero_random_bytes(self):
+        print("test_ed25519_zero_random_bytes(self)")
         client = lba.client.AuthenticatorClient(key_source = TestKeySource(),
                                     signature_generator = TestSignatureGenerator(base64.b64decode('ZCqTWvzwzOimDwBGpsxgYzhVcJfWMCbF0D00lxFOfg4Z3777zWqq3iTvQgqiPKIaRVYOQ6vN9DvbxZiJOyyTAg==')),
                                     random_generator = EmptyRandomGenerator(),
@@ -98,6 +99,7 @@ class AuthenticatorClientTest(unittest.TestCase):
         self.assertTrue(client.authenticate('test').verify())
         
     def test_ed25519_sequential_bytes(self):
+        print("test_ed25519_sequential_bytes(self)")
         client = lba.client.AuthenticatorClient(key_source = TestKeySource(),
                                     signature_generator = TestSignatureGenerator(base64.b64decode('1eB+ogdIs4G/+KvZBNI1Gzh6tQNsHn5BsFiDUhMPr3igf2Pnnm6bwRWlUlXYFUmi4LEr1mR9Jvc/5QUA9zm/CQ==')),
                                     random_generator = SequentialRandomGenerator(),

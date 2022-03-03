@@ -24,7 +24,7 @@ Safeguard your people, passwords and apps with LogonBox's 2-Factor [Authenticati
 
  * Python 3
  * [PyCryptodome](https://pypi.org/project/pycryptodome/)
- * [python-ed25519](https://github.com/warner/python-ed25519)
+ * [pynacl](https://github.com/pyca/pynacl)
 
 ## Usage
 
