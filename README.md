@@ -98,7 +98,14 @@ success = resp.verify();
 
 ## Debugging
 
-You can pass a `logger=....` argument into the `lba.client.Client` constructor. Whatever object you pass into should support a `info(<format>, <arg1>, <arg2>, ..)` function, as well as an `error(..)` function with the same signature. For convenience, you can pass in a standard Python logger object here.
+You can pass `debug = True` as a constructor argument to `AuthenticatorClient`, or alternatively call `enable_debug()` on an instance of this same object.
+
+```python
+import logging
+client = lba.client.Client('tenant.logonbox.directory', debug = True)
+```
+
+Alternatively, you can pass a `logger=....` argument into the `lba.client.Client` constructor. Whatever object you pass into should support a `info(<format>, <arg1>, <arg2>, ..)` function, as well as an `error(..)` function with the same signature. For convenience, you can pass in a standard Python logger object here.
 
 ```python
 import logging
